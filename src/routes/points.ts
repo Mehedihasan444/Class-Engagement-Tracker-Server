@@ -3,12 +3,13 @@ import { AuthRequest } from '../middleware/auth';
 import EngagementPoint from '../models/EngagementPoint';
 import { auth } from '../middleware/auth';
 import mongoose from 'mongoose';
+import { checkStatus } from '../middleware/auth';
 
 
 const router = express.Router();
 
 // Add points
-router.post('/', auth, async (req: AuthRequest, res) => {
+router.post('/', auth, checkStatus, async (req: AuthRequest, res) => {
   try {
     const points = Number(req.body.points);
     if (isNaN(points) || points < 1 || points > 10) {
@@ -130,7 +131,7 @@ router.delete('/:id', auth, async (req: AuthRequest, res) => {
   }
 });
 
-router.patch('/:id', auth, async (req: AuthRequest, res) => {
+router.patch('/:id', auth, checkStatus, async (req: AuthRequest, res) => {
   try {
     const { points, reason } = req.body;
     

@@ -90,14 +90,8 @@ router.post('/logout', auth, async (req, res) => {
   res.send({ message: 'Logged out successfully' });
 });
 
-router.get('/verify', auth, async (req: AuthRequest, res) => {
-  try {
-    const student = await Student.findById(req.student?._id).select('-password');
-    if (!student) throw new Error();
-    res.send(student);
-  } catch (error) {
-    res.status(401).send({ error: 'Please authenticate' });
-  }
+router.get('/verify', auth, (req: AuthRequest, res) => {
+  res.send({ valid: true });
 });
 
 router.get('/me', auth, async (req: AuthRequest, res) => {

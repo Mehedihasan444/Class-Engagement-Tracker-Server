@@ -36,4 +36,44 @@ router.delete('/students/:id', auth, async (req: AuthRequest, res) => {
   }
 });
 
+// Add role update endpoint
+router.patch('/students/:id/role', auth, async (req: AuthRequest, res) => {
+  try {
+    if (req.student?.role !== 'admin') {
+      return res.status(403).send({ error: 'Admin access required' });
+    }
+    
+    const student = await Student.findByIdAndUpdate(
+      req.params.id,
+      { role: req.body.role },
+      { new: true }
+    );
+    
+    if (!student) return res.status(404).send();
+    res.send(student);
+  } catch (error) {
+    res.status(400).send(error);
+  }
+});
+
+// Add status update endpoint
+router.patch('/students/:id/status', auth, async (req: AuthRequest, res) => {
+  try {
+    if (req.student?.role !== 'admin') {
+      return res.status(403).send({ error: 'Admin access required' });
+    }
+    
+    const student = await Student.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true }
+    );
+    
+    if (!student) return res.status(404).send();
+    res.send(student);
+  } catch (error) {
+    res.status(400).send(error);
+  }
+});
+
 export default router; 
