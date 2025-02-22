@@ -49,4 +49,11 @@ export const checkStatus = async (req: AuthRequest, res: Response, next: NextFun
   } catch (error) {
     res.status(500).send({ error: 'Status check failed' });
   }
+};
+
+export const notificationAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!req.student) {
+    return res.status(401).send({ error: 'Authentication required' });
+  }
+  next();
 }; 

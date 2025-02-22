@@ -1,7 +1,8 @@
 import express from 'express';
 import { AuthRequest } from '../middleware/auth';
-import Student from '../models/Student';
 import { auth, adminAuth } from '../middleware/auth';
+import Student from '../models/Student';
+
 
 const router = express.Router();
 
@@ -46,6 +47,16 @@ router.delete('/:id', auth, adminAuth, async (req: AuthRequest, res) => {
     const student = await Student.findByIdAndDelete(req.params.id);
     if (!student) return res.status(404).send();
     res.send(student);
+  } catch (error) {
+    res.status(500).send();
+  }
+});
+
+// Add this new route to existing student routes
+router.get('/class-sections', auth, async (req: AuthRequest, res) => {
+  try {
+    const sections = await Student.distinct('classSection');
+    res.send(sections.sort());
   } catch (error) {
     res.status(500).send();
   }

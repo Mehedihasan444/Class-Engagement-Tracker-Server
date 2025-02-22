@@ -1,7 +1,7 @@
 import express from 'express';
 import { auth } from '../middleware/auth';
-import Student from '../models/Student';
 import { AuthRequest } from '../middleware/auth';
+import Student from '../models/Student';
 
 const router = express.Router();
 

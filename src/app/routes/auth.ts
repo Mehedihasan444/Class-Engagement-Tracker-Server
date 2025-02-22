@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import Student from '../models/Student';
 import { auth, AuthRequest } from '../middleware/auth';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { v4 as uuidv4 } from 'uuid';
+import Student from '../models/Student';
 const router = express.Router();
 
 // Configure Google Strategy
@@ -18,13 +19,16 @@ passport.use(new GoogleStrategy({
   try {
     let student = await Student.findOne({ email: profile.emails?.[0].value });
     
+    
     if (!student) {
       student = new Student({
         name: profile.displayName,
         email: profile.emails?.[0].value,
         password: await bcrypt.hash(uuidv4(), 8),
         role: 'user',
-        googleId: profile.id
+        googleId: profile.id,
+        classSection: " ",
+        studentId: " "
       });
       await student.save();
     }
@@ -148,15 +152,21 @@ router.patch('/update-password', auth, async (req: AuthRequest, res) => {
 
 // Add routes
 router.get('/google', passport.authenticate('google'));
-router.get('/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/login' }),
+router.get('/google/callback',
+  passport.authenticate('google', { session: false }),
   (req, res) => {
-    const token = jwt.sign({ _id: (req.user as any)._id }, process.env.JWT_SECRET!);
-    res.redirect(`/auth/google/success?token=${token}`);
+    const token = jwt.sign({ 
+      _id: (req.user as any)._id,
+      role: (req.user as any).role,
+      classSection: (req.user as any).classSection
+    }, process.env.JWT_SECRET!);
+    
+    // Redirect to client-side success page with token
+    res.redirect(`${process.env.CORS_ORIGIN}/auth/google/callback?token=${token}`);
   }
 );
 
-router.get('/google/success', async (req, res) => {
+router.get('/api/auth/google/success', async (req, res) => {
   const token = req.query.token;
   const decoded = jwt.verify(token as string, process.env.JWT_SECRET!) as { _id: string };
   const student = await Student.findById(decoded._id).select('-password');

@@ -1,17 +1,24 @@
 {
-  "name": "classroom-server",
+  "name": "classroom-engagement-tracker-server",
   "version": "1.0.0",
-  "main": "dist/index.js",
+  "description": "**Objective:** Develop a Express application with TypeScript as the programming language, integrating MongoDB with Mongoose for effective data management. Ensure data integrity through validation using Joi/Zod.",
+  "main": "./dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "nodemon --exec ts-node src/index.ts"
+    "start:prod": "node ./dist/index.js",
+    "start:dev": "ts-node-dev --respawn --transpile-only ./src/index.ts",
+    "lint": "npx eslint .",
+    "lint:fix": "npx eslint . --fix",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "author": "",
+  "license": "ISC",
   "dependencies": {
+    "@types/express-session": "^1.18.1",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.18.2",
+    "express-session": "^1.18.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
     "morgan": "^1.10.0",
@@ -20,6 +27,7 @@
     "uuid": "^11.0.5"
   },
   "devDependencies": {
+    "@eslint/js": "^9.3.0",
     "@types/bcrypt": "^5.0.1",
     "@types/cors": "^2.8.13",
     "@types/express": "^4.17.17",
@@ -28,8 +36,11 @@
     "@types/passport": "^1.0.17",
     "@types/passport-google-oauth20": "^2.0.16",
     "@types/uuid": "^10.0.0",
+    "eslint": "^8.57.0",
     "nodemon": "^3.0.2",
     "ts-node": "^10.9.1",
-    "typescript": "^5.2.2"
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.2.2",
+    "typescript-eslint": "^7.10.0"
   }
 }

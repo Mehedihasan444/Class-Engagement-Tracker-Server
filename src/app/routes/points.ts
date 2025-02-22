@@ -1,10 +1,10 @@
 import express from 'express';
 import { AuthRequest } from '../middleware/auth';
-import EngagementPoint from '../models/EngagementPoint';
 import { auth } from '../middleware/auth';
 import mongoose from 'mongoose';
 import { checkStatus } from '../middleware/auth';
-
+import EngagementPoint from '../models/EngagementPoint';
+import Notification from '../models/Notification';
 
 const router = express.Router();
 
@@ -24,8 +24,15 @@ router.post('/', auth, checkStatus, async (req: AuthRequest, res) => {
     });
 
     const savedPoint = await point.save();
-    res.status(201).send(savedPoint);
 
+    // Create notification
+    const notification = new Notification({
+      studentId: req.student?._id,
+      message: `You earned ${points} points for: ${req.body.reason}`
+    });
+    await notification.save();
+
+    res.status(201).send({ ...savedPoint.toObject(), notification });
   } catch (error) {
     if (error instanceof mongoose.Error.ValidationError) {
       const messages = Object.values(error.errors).map(err => err.message);
