@@ -13,7 +13,7 @@ const router = express.Router();
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID!,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-  callbackURL: '/api/auth/google/callback',
+  callbackURL: process.env.NODE_ENV === 'production' ? 'https://class-engagement-tracker-server.vercel.app/api/auth/google/callback': '/api/auth/google/callback',
   scope: ['profile', 'email']
 }, async (accessToken, refreshToken, profile, done) => {
   try {
@@ -27,8 +27,8 @@ passport.use(new GoogleStrategy({
         password: await bcrypt.hash(uuidv4(), 8),
         role: 'user',
         googleId: profile.id,
-        classSection: " ",
-        studentId: " "
+        classSection: "",
+        studentId: ""
       });
       await student.save();
     }
@@ -145,6 +145,46 @@ router.patch('/update-password', auth, async (req: AuthRequest, res) => {
     student.password = await bcrypt.hash(newPassword, 8);
     await student.save();
     res.send({ message: 'Password updated successfully' });
+  } catch (error) {
+    res.status(400).send(error);
+  }
+});
+
+router.patch('/mandatory-update', auth, async (req: AuthRequest, res) => {
+  try {
+    const student = await Student.findById(req.student?._id);
+    if (!student) throw new Error();
+    
+    const { studentId, classSection } = req.body;
+    
+    // Add validation for non-empty strings
+    if (!studentId?.trim() || !classSection?.trim()) {
+      return res.status(400).send({ error: 'All fields are required' });
+    }
+
+    // Check for existing student ID
+    const existingStudent = await Student.findOne({ studentId });
+    if (existingStudent && existingStudent._id.toString() !== student._id.toString()) {
+      return res.status(400).send({ 
+        error: 'Student ID already exists',
+        field: 'studentId'
+      });
+    }
+
+    student.studentId = studentId.trim();
+    student.classSection = classSection.trim();
+    await student.save();
+
+    // Return updated student data
+    const updatedStudent = await Student.findById(student._id).select('-password');
+    
+    const token = jwt.sign({ 
+      _id: student._id,
+      role: student.role,
+      classSection: student.classSection
+    }, process.env.JWT_SECRET!);
+
+    res.send({ student: updatedStudent, token });
   } catch (error) {
     res.status(400).send(error);
   }

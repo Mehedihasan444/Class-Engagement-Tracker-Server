@@ -60,6 +60,130 @@ router.get('/history', auth, async (req: AuthRequest, res) => {
   }
 });
 
+// Get points statistics
+// router.get('/statistics', auth, async (req, res) => {
+//   try {
+//     const statistics = await EngagementPoint.aggregate([
+//       {
+//         $group: {
+//           _id: '$studentId',
+//           totalPoints: { $sum: '$points' }
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: 'students',
+//           localField: '_id',
+//           foreignField: '_id',
+//           as: 'student'
+//         }
+//       },
+//       { $unwind: '$student' },
+//       {
+//         $project: {
+//           'student.password': 0,
+//           'student.__v': 0,
+//           'student.googleId': 0
+//         }
+//       },
+//       { $sort: { totalPoints: -1 } }
+//     ]);
+// console.log(statistics,"statistics")
+//     res.send(statistics);
+//   } catch (error) {
+//     console.error('Statistics error:', error);
+//     res.status(500).send({ error: 'Failed to load statistics' });
+//   }
+// });
+// ... existing code ...
+router.get('/statistics', auth, async (req, res) => {
+  try {
+    // Weekly statistics
+    const weeklyStats = await EngagementPoint.aggregate([
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$date" }
+          },
+          points: { $sum: "$points" }
+        }
+      },
+      { 
+        $sort: { _id: 1 } 
+      },
+      {
+        $project: {
+          day: "$_id",
+          points: 1,
+          _id: 0
+        }
+      }
+    ]);
+
+    // Monthly statistics
+    const monthlyStats = await EngagementPoint.aggregate([
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m", date: "$date" }
+          },
+          points: { $sum: "$points" }
+        }
+      },
+      { 
+        $sort: { _id: 1 } 
+      },
+      {
+        $project: {
+          day: "$_id",
+          points: 1,
+          _id: 0
+        }
+      }
+    ]);
+
+    // Averages
+    const dailyAverage = await EngagementPoint.aggregate([
+      {
+        $group: {
+          _id: null,
+          average: { $avg: "$points" }
+        }
+      }
+    ]);
+
+    const weeklyAverage = await EngagementPoint.aggregate([
+      {
+        $group: {
+          _id: {
+            $week: "$date"
+          },
+          total: { $sum: "$points" }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          average: { $avg: "$total" }
+        }
+      }
+    ]);
+
+    res.send({
+      weekly: weeklyStats,
+      monthly: monthlyStats,
+      averages: {
+        daily: dailyAverage[0]?.average || 0,
+        weekly: weeklyAverage[0]?.average || 0
+      }
+    });
+  } catch (error) {
+    console.error('Statistics error:', error);
+    res.status(500).send({ error: 'Failed to load statistics' });
+  }
+});
+
+
 // Get leaderboard
 router.get('/leaderboard', auth, async (req, res) => {
   try {
@@ -119,7 +243,81 @@ router.get('/leaderboard', auth, async (req, res) => {
     res.status(500).send({ error: 'Failed to load leaderboard' });
   }
 });
+// Get section distribution
+router.get('/sections', auth, async (req, res) => {
+  try {
+    const sectionStats = await EngagementPoint.aggregate([
+      {
+        $lookup: {
+          from: 'students',
+          localField: 'studentId',
+          foreignField: '_id',
+          as: 'student'
+        }
+      },
+      { $unwind: '$student' },
+      {
+        $group: {
+          _id: '$student.classSection',
+          totalPoints: { $sum: '$points' }
+        }
+      },
+      { 
+        $project: {
+          _id: 0,
+          section: '$_id',
+          totalPoints: 1
+        }
+      }
+    ]);
+    
+    const result = sectionStats.reduce((acc, curr) => {
+      acc[curr.section] = curr.totalPoints;
+      return acc;
+    }, {});
+    
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ error: 'Failed to load section data' });
+  }
+});
 
+// Get top contributors
+router.get('/top-contributors', auth, async (req, res) => {
+  try {
+    const topContributors = await EngagementPoint.aggregate([
+      {
+        $lookup: {
+          from: 'students',
+          localField: 'studentId',
+          foreignField: '_id',
+          as: 'student'
+        }
+      },
+      { $unwind: '$student' },
+      {
+        $group: {
+          _id: '$studentId',
+          name: { $first: '$student.name' },
+          totalPoints: { $sum: '$points' }
+        }
+      },
+      { $sort: { totalPoints: -1 } },
+      { $limit: 5 },
+      {
+        $project: {
+          _id: 0,
+          name: 1,
+          points: '$totalPoints'
+        }
+      }
+    ]);
+    
+    res.send(topContributors);
+  } catch (error) {
+    res.status(500).send({ error: 'Failed to load top contributors' });
+  }
+});
 // Delete points entry (admin only)
 router.delete('/:id', auth, async (req: AuthRequest, res) => {
   try {
